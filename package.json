@@ -1,0 +1,32 @@
+{
+  "name": "checkee-proxy",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "serve": "node dist/server.js",
+    "update": "node dist/spider.js",
+    "create-table": "node dist/create_table.js",
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "author": "Chazeon",
+  "dependencies": {
+    "@types/async-retry": "^1.2.1",
+    "@types/cheerio": "^0.22.7",
+    "@types/express": "^4.16.0",
+    "@types/knex": "^0.14.14",
+    "@types/lodash": "^4.14.110",
+    "@types/request": "^2.47.1",
+    "@types/request-promise-native": "^1.0.15",
+    "async-retry": "^1.2.1",
+    "bluebird": "^3.5.1",
+    "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.3",
+    "knex": "^0.14.6",
+    "lodash": "^4.17.10",
+    "objection": "^1.1.10",
+    "request": "^2.87.0",
+    "request-promise-native": "^1.0.5",
+    "sqlite3": "^4.0.0"
+  }
+}
