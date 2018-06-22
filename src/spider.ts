@@ -3,10 +3,12 @@ import * as request_promise from 'request-promise-native'
 import * as cheerio from 'cheerio'
 import _ from 'lodash'
 import retry from 'async-retry'
+import Knex from 'knex'
+import Bluebird from 'bluebird'
 
 import { Case } from './model/case'
 import { table_fields } from './model/table'
-import { isNull, isUndefined } from 'util';
+import { isNull, isUndefined } from 'util'
 import { getKnex } from './model/database'
 
 function parseDetail(detail_html: string) {
@@ -37,7 +39,50 @@ async function getFromDetail(id: number): Promise<Case> {
     })
 }
 
-async function main() {
+async function updateCase(case_id: number, knex: Knex): Promise<void> {
+    let CaseKnex = Case.bindKnex(knex)
+    let savedCase = await CaseKnex.query().where('id', case_id)
+    if (savedCase && savedCase.length > 0 && savedCase[0].status === 'clear') {
+        console.log(`Skipping case #${case_id}`)
+        return 
+    }
+
+    let updatedCase = await retry(async bait => {
+        try {
+            console.log(`Processing case #${case_id}`)
+            let updatedCase = await getFromDetail(case_id)
+            return updatedCase
+        }
+        catch (err) {
+            if (err.name !== 'StatusCodeError' && err.name !== 'RequestError') {
+                console.log('Bait')
+                console.log(err)
+                bait(err)
+                return
+            }
+            else {
+                console.log(err)
+                throw(err)
+            }
+        }
+    }, {
+        retries: 5,
+    })
+
+    if (!updatedCase) return
+
+    if (updatedCase.account_name === '') return
+
+    if (savedCase && savedCase.length > 0) {
+        await CaseKnex.query().where('id', case_id).update(updatedCase)
+        console.log(updatedCase)
+    }
+    else {
+        console.log(await CaseKnex.query().insert(updatedCase))
+    }
+}
+
+async function main(start: number = 0) {
     let knex = await getKnex()
     let CaseKnex = Case.bindKnex(knex)
 
@@ -95,7 +140,17 @@ async function main() {
     return 'Finished'
 }
 
-main()
+async function main_parallel() {
+    let knex = await getKnex()
+    await Bluebird.map(
+        _.range(14918, 900000),
+        id => updateCase(id, knex),
+        { concurrency: 20 }
+    )
+}
+
+//main()
+main_parallel()
 .then(
     res => console.log(res),
     err => console.log(err)
